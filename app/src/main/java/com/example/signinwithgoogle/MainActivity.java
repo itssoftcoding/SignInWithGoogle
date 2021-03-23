@@ -24,6 +24,8 @@ import com.google.firebase.auth.GoogleAuthProvider;
 
 public class MainActivity extends AppCompatActivity {
 
+    //This app is connect to TimeTrackingFlutterApp firebase project
+
     public static final String TAG = "GoogleSignIn";
     private GoogleSignInClient mGoogleSignInClient;
     public static final int RC_SIGN_IN = 321;
