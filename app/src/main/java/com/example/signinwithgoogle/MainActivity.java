@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -13,6 +14,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -22,13 +24,13 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 
+//This app is connect to TimeTrackingFlutterApp firebase project
 public class MainActivity extends AppCompatActivity {
 
-    //This app is connect to TimeTrackingFlutterApp firebase project
-
     public static final String TAG = "GoogleSignIn";
-    private GoogleSignInClient mGoogleSignInClient;
     public static final int RC_SIGN_IN = 321;
+    private SignInButton btnSignInWithGoogle;
+    private GoogleSignInClient mGoogleSignInClient;
     private FirebaseAuth mAuth;
 
 
@@ -37,10 +39,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        btnSignInWithGoogle = findViewById(R.id.btnGoogleSignIn);
         mAuth = FirebaseAuth.getInstance();
         requestGoogleSignIn();
 
-        findViewById(R.id.btnGoogleSignIn).setOnClickListener(view -> {
+        btnSignInWithGoogle.setOnClickListener(view -> {
             signIn();
         });
 
@@ -71,17 +74,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void firebaseAuthWithGoogle(String idToken) {
+
+        //getting user credentials with the help of AuthCredential method and also passing user Token Id.
         AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
+
+        //trying to sign in user using signInWithCredential and passing above credentials of user.
         mAuth.signInWithCredential(credential)
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
-                            // Sign in success, update UI with the signed-in user's information
+
                             Log.d(TAG, "signInWithCredential:success");
-                            FirebaseUser user = mAuth.getCurrentUser();
-                            Log.i(TAG, "User: " + user.getDisplayName());
-                            startActivity(new Intent(getApplicationContext(), ProfileActivity.class));
+
+                            // Sign in success, navigate user to Profile Activity
+                            Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
+                            startActivity(intent);
 
                         } else {
                             // If sign in fails, display a message to the user.
@@ -101,13 +109,29 @@ public class MainActivity extends AppCompatActivity {
             try {
                 // Google Sign In was successful, authenticate with Firebase
                 GoogleSignInAccount account = task.getResult(ApiException.class);
+
+                //authenticating user with firebase using received token id
                 firebaseAuthWithGoogle(account.getIdToken());
+
+                //assigning user information to variables
+                String userName = account.getDisplayName();
+                String userEmail = account.getEmail();
+                String userPhoto = account.getPhotoUrl().toString();
+                userPhoto = userPhoto+"?type=large";
+
+                //create sharedPreference to store user data when user signs in successfully
+                SharedPreferences.Editor editor = getApplicationContext()
+                        .getSharedPreferences("MyPrefs",MODE_PRIVATE)
+                        .edit();
+                editor.putString("username", userName);
+                editor.putString("useremail", userEmail);
+                editor.putString("userPhoto", userPhoto);
+                editor.apply();
 
                 Log.i(TAG, "onActivityResult: Success");
 
             } catch (ApiException e) {
-                // Google Sign In failed, update UI appropriately
-                Log.e(TAG, "onActivityResult: " + e.getMessage() );
+                Log.e(TAG, "onActivityResult: " + e.getMessage());
             }
         }
     }
